@@ -1,5 +1,9 @@
 Revision history for Perl extension CGI::Session::MembersArea.
 
+2.01  Mon Jul 19 14:43:00 2004
+	- Change Makefile.PL to coexist with Module::Build
+	- Add t/pod.t to test all PODs
+
 2.00  Fri Apr 16 13:43:00 2004
 	- Chop all references to CGI::Session. Putting this module into production exposed the
 		reality that it was way too complex, so I've refactored it on the assumption that
