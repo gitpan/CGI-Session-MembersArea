@@ -1,0 +1,10 @@
+# Columns, separated by tabs
+# o Myadmin Username
+# o Myadmin Password
+# o Resource name
+# o Resource username
+# o Resource password
+
+Ron Savage	ro	db_a	root	pass
+Ron Savage	ro	db_b	root	pass
+An Other	an	db_a	root	pass

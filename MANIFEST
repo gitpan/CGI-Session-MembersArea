@@ -1,0 +1,9 @@
+Build.PL
+Changes.txt
+MANIFEST			This list of files
+META.yml
+README
+examples/myadmin-init.pl
+examples/myadmin-init.txt
+lib/CGI/Session/MembersArea.pm
+t/test.t
