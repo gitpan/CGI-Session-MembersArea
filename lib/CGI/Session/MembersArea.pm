@@ -58,7 +58,7 @@ our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
 our @EXPORT = qw(
 
 );
-our $VERSION = '1.10';
+our $VERSION = '1.11';
 
 # -----------------------------------------------
 
@@ -193,7 +193,7 @@ sub init
 sub load_profile
 {
 	my($self, $resource, $username, $password) = @_;
-	my($sql) = "select * from $$self{'_session_table'} where $$self{'_resource_name_column'} = ? and $$self{'__session_key_name_column'} = ? and $$self{'_session_password_column'} = ?";
+	my($sql) = "select * from $$self{'_session_table'} where $$self{'_resource_name_column'} = ? and $$self{'_session_key_name_column'} = ? and $$self{'_session_password_column'} = ?";
 	my($sth) = $$self{'_dbh'} -> prepare($sql);
 
 	$sth -> execute($resource, lc $username, $password);

@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name: CGI-Session-MembersArea
-version: 1.10
+version: 1.11
 author:
   - Ron Savage <ron@savage.net.au>
 abstract: A resource guardian based on CGI::Session
