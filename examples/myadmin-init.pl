@@ -34,8 +34,8 @@ sub create_user_table
 	my($sql)		=<<SQL;
 create table $table_name (
 user_id int not null auto_increment primary key,
-user_name varchar(255) not null,
-user_name_key varchar(255) not null,
+user_full_name varchar(255) not null,
+user_full_name_key varchar(255) not null,
 user_password varchar(255) not null,
 user_resource_name varchar(255),
 user_resource_username varchar(255),
@@ -55,7 +55,7 @@ SQL
 sub populate_user_table
 {
 	my($dbh)				= @_;
-	my($sth)				= $dbh -> prepare('insert into user (user_name, user_name_key, user_password, user_resource_name, user_resource_username, user_resource_password) values (?, ?, ?, ?, ?, ?)');
+	my($sth)				= $dbh -> prepare('insert into user (user_full_name, user_full_name_key, user_password, user_resource_name, user_resource_username, user_resource_password) values (?, ?, ?, ?, ?, ?)');
 	my($input_file_name)	= '/apache2/perl/myadmin-init.txt';
 
 	open(INX, $input_file_name) || throw Error::Simple("Can't open $input_file_name): $!");

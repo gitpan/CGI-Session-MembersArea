@@ -34,6 +34,7 @@ no warnings 'redefine';
 
 use Carp;
 use CGI::Session;
+use DBI;
 
 require 5.005_62;
 
@@ -57,7 +58,7 @@ our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
 our @EXPORT = qw(
 
 );
-our $VERSION = '1.00';
+our $VERSION = '1.10';
 
 # -----------------------------------------------
 
@@ -82,11 +83,12 @@ our $VERSION = '1.00';
 		_resource_username_column	=> 'user_resource_username',
 		_session_attributes			=> '',
 		_session_driver				=> 'MySQL',
+		_session_full_name_column	=> 'user_full_name',
+		_session_key_name_column	=> 'user_full_name_key',
 		_session_id_name			=> 'sid',
 		_session_password_column	=> 'user_password',
 		_session_table				=> 'user',
 		_session_timeout			=> '+10h',
-		_session_username_column	=> 'user_name_key',
 		_username					=> '',
 	);
 
@@ -144,7 +146,7 @@ sub id
 # Return values:
 # o 'Logged in'
 # o 'Not logged in'
-# o \d+ (# of log in trials)
+# o /\d+/ (# of log in trials)
 
 sub init
 {
@@ -152,9 +154,9 @@ sub init
 
 	return 'Logged in' if ($$self{'_session'} -> param('logged_in') );
 
-	my($my_resource) = $self -> clean_user_data($$self{'_query'} -> param($$self{'_form_resource'}), $$self{'_form_field_width'});
-	my($my_username) = $self -> clean_user_data($$self{'_query'} -> param($$self{'_form_username'}), $$self{'_form_field_width'});
-	my($my_password) = $self -> clean_user_data($$self{'_query'} -> param($$self{'_form_password'}), $$self{'_form_field_width'});
+	my($my_resource) = $self -> clean_user_data( ($$self{'_query'} -> param($$self{'_form_resource'}) || ''), $$self{'_form_field_width'});
+	my($my_username) = $self -> clean_user_data( ($$self{'_query'} -> param($$self{'_form_username'}) || ''), $$self{'_form_field_width'});
+	my($my_password) = $self -> clean_user_data( ($$self{'_query'} -> param($$self{'_form_password'}) || ''), $$self{'_form_field_width'});
 
 	my($result);
 
@@ -191,7 +193,7 @@ sub init
 sub load_profile
 {
 	my($self, $resource, $username, $password) = @_;
-	my($sql) = "select * from $$self{'_session_table'} where $$self{'_resource_name_column'} = ? and $$self{'_session_username_column'} = ? and $$self{'_session_password_column'} = ?";
+	my($sql) = "select * from $$self{'_session_table'} where $$self{'_resource_name_column'} = ? and $$self{'__session_key_name_column'} = ? and $$self{'_session_password_column'} = ?";
 	my($sth) = $$self{'_dbh'} -> prepare($sql);
 
 	$sth -> execute($resource, lc $username, $password);
@@ -200,13 +202,14 @@ sub load_profile
 
 	$sth -> finish();
 
-	if ($profile && $$profile{$$self{'_session_username_column'} })
+	if ($profile && $$profile{$$self{'_session_key_name_column'} })
 	{
 		$profile =
 		{
-			resource => $$profile{$$self{'_resource_name_column'} },
-			username => $$profile{$$self{'_resource_username_column'} },
-			password => $$profile{$$self{'_resource_password_column'} },
+			full_name	=> $$profile{$$self{'_session_full_name_column'} },
+			resource	=> $$profile{$$self{'_resource_name_column'} },
+			username	=> $$profile{$$self{'_resource_username_column'} },
+			password	=> $$profile{$$self{'_resource_password_column'} },
 		};
 	}
 	else
@@ -387,18 +390,19 @@ Here is the structure of the 'user' table:
 
 Not used. Typically an auto-incrementing row number.
 
-=item user_name
+=item user_full_name
 
 The name of the user who might be permitted access to the resource, typically entered by
 the user in a CGI form.
 
 The value entered by the user of the CGI script is extracted from the query object.
 
-The name of the CGI form variable used here can be changed by a parameter to the constructor.
+The name of the CGI form variable used here can be changed by a parameter to the constructor. This parameter is
+called 'form_username'.
 
-=item user_name_key
+=item user_full_name_key
 
-A lower-case version of the user_name column, used for searching the 'user' table.
+A lower-case version of the user_full_name column, used when searching the 'user' table.
 
 =item user_password
 
@@ -409,23 +413,25 @@ Or, even better, some digest (eg: MD5) of their password.
 
 The value entered by the user of the CGI script is extracted from the query object.
 
+The name of the CGI form variable used here can be changed by a parameter to the constructor. This parameter is
+called 'form_password'.
+
 The password is typically hashed after the user enters it in a CGI form. You can use the
 Javascript::MD5 module to convert user input into an MD5 digest. That way, the password
 itself is never transmitted across the network - only the MD5 digest is transmitted when
 the form is submitted.
 
-This password - digest or not - is used for searching the 'user' table.
-
-The name of the CGI form variable used here can be changed by a parameter to the constructor.
+This password - digest or not - is used when searching the 'user' table.
 
 =item user_resource_name
 
-A convenient string, used for searching the 'user' table, typically the name of the database
+A convenient string, used when searching the 'user' table, typically the name of the database
 being protected by the guardian database.
 
 The value entered by the user of the CGI script is extracted from the query object.
 
-The name of the CGI form variable used here can be changed by a parameter to the constructor.
+The name of the CGI form variable used here can be changed by a parameter to the constructor. This parameter is
+called 'form_resource'.
 
 =item user_resource_username
 
@@ -615,6 +621,15 @@ See the documentation for CGI::Session for more detail.
 
 This parameter is mandatory.
 
+=item session_full_name_column
+
+This is the name of the column in the 'user' table which contains the name of the user who might
+be permitted access to the resource
+
+The default value is 'user_full_name'.
+
+This parameter is optional.
+
 =item session_id_name
 
 This is a value passed to the underlying CGI::Session's method C<name()>.
@@ -624,6 +639,18 @@ Set the value to the empty string to stop this module calling C<name()>.
 The default value is 'sid'.
 
 See the documentation for CGI::Session for more detail.
+
+This parameter is optional.
+
+=item session_key_name_column
+
+This is the name of the column in the 'user' table which contains the lower case version
+of the name of the user who might be permitted access to the resource
+
+The value in this column is matched against the lc(value) taken from the CGI form field
+called, by default, 'my_username'.
+
+The default value is 'user_full_name_key'.
 
 This parameter is optional.
 
@@ -657,18 +684,6 @@ Set the value to the empty string to stop this module calling C<expire()>.
 The default value is '+10h'.
 
 See the documentation for CGI::Session for more detail.
-
-This parameter is optional.
-
-=item session_username_column
-
-This is the name of the column in the 'user' table which contains the lower case version
-of the name of the user who might be permitted access to the resource
-
-The value in this column is matched against the value taken from the CGI form field
-called, by default, 'my_username'.
-
-The default value is 'user_name_key'.
 
 This parameter is optional.
 
@@ -757,11 +772,39 @@ The profile is a hash ref with these keys:
 
 =over 4
 
-=item The name of the resource
+=item full_name
 
-=item The username of the resource
+The full name of the user.
 
-=item The password of the resource
+This comes from the column of the user table called 'user_full_name'.
+
+Use the C<new()> parameter 'session_full_name_column' if you change the name of this column.
+
+The value associated with this key in the profile can be used to display the name of the person who is logged in.
+
+=item resource
+
+The name of the resource.
+
+This comes from the column of the user table called 'user_resource_name'.
+
+Use the C<new()> parameter 'resource_name_column' if you change the name of this column.
+
+=item username
+
+The username of the resource.
+
+This comes from the column of the user table called 'user_resource_username'.
+
+Use the C<new()> parameter 'resource_username_column' if you change the name of this column.
+
+=item password
+
+The password of the resource.
+
+This comes from the column of the user table called 'user_resource_password'.
+
+Use the C<new()> parameter 'resource_password_column' if you change the name of this column.
 
 =back
 
@@ -775,7 +818,7 @@ This indicates the user could not be logged in.
 
 The most likely reason for this is that the CGI form fields have the wrong names or values.
 
-=item \d+ (# of log in trials)
+=item /\d+/ (# of log in trials)
 
 This can be used to take some action if the user tries to connect too many times.
 
@@ -831,6 +874,8 @@ This is part of myadmin.cgi V 2.00.
 
 This is part of myadmin.cgi V 2.00.
 
+=item Javascript::MD5
+
 =back
 
 =head1 Required Modules
@@ -840,8 +885,6 @@ This is part of myadmin.cgi V 2.00.
 =item Carp
 
 =item CGI::Session
-
-=item Javascript::MD5
 
 =back
 

@@ -1,4 +1,35 @@
 Revision history for Perl extension CGI::Session::MembersArea.
 
+1.10  Tue Apr 13 13:29:29 2004
+	- Bump the version number all the way from 1.00 to 1.10 to help warn users of the changes, particularly the
+		changes in the names of 2 database columns in the 'user' table
+	- Add 'use DBI;' to the list of used modules
+	- Rename the 'user_name' column in the 'user' table to 'user_full_name'
+	- Rename the 'user_name_key' column in the 'user' table to 'user_full_name_key'. These 2 column name changes,
+		together, should make things clearer
+	- Add a parameter called 'session_full_name_column' to the constructor so you can use a table with a column
+		called something other than the (new) name 'user_full_name'
+	- Rename the constructor parameter called 'session_username_column' to be 'session_key_name_column'. The default
+		value of this parameter is 'user_full_name_key'
+	- Change the 3 calls to the CGI object's method 'param'. Sometimes, when the value of a CGI form field is undef,
+		and the CGI object's method 'param' is being called as part of the parameter list of some method, CGI.pm does
+		not return undef, it actually deletes one (1) parameter from the parameter list, so all remaining parameters
+		get shifted down one place
+	- Add a key called 'full_name' to the profile returned by the 'load_profile' method
+	- Flag Javascript::MD5 as a related module, not a required module
+	- Properly document - in the POD and here - the keys to the profile returned by the 'load_profile' method
+	- Clean up and clarify various other parts of the docs
+	- Patch the demo in examples/ to match these changes
+	- Summary of changes
+		Old                      New                       Role
+		-                        session_full_name_column  Parameter to new()
+		session_username_column  session_key_name_column   Parameter to new()
+		user_name                user_full_name            Column in table user
+		user_name_key            user_full_name_key        Column in table user
+		-                        full_name                 Key in profile
+		resource                 resource                  Key in profile (no change)
+		username                 username                  Key in profile (no change)
+		password                 password                  Key in profile (no change)
+
 1.00  Fri Mar  5 12:37:29 2004
 	- Original version
