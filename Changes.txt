@@ -1,5 +1,27 @@
 Revision history for Perl extension CGI::Session::MembersArea.
 
+2.00  Fri Apr 16 13:43:00 2004
+	- Chop all references to CGI::Session. Putting this module into production exposed the
+		reality that it was way too complex, so I've refactored it on the assumption that
+		the code using this module will also use CGI::Session. Hence, the code to save the
+		user's profile into a database via CGI::Session is assumed to be elsewhere in your
+		program and not in this module
+	- Chop object attributes with these names:
+		o session_attributes
+		o session_driver
+		o session_id_name
+		o session_timeout
+	- Chop parameter to sub new() with this name:
+		o session_driver
+	- Chop sub id()
+	- Chop sub param()
+	- Change the return values for sub init() to now be one of:
+		o $profile, a hash ref
+		o undef
+	- Add to docs a note on how to handle the case where you do not wish to have an
+		input field for 'resource'
+	- Various clean up within the docs
+
 1.11  Tue Apr 13 15:10:00 2004
 	- Fix a typo in method load_profile. A hash key had a double underscore prefix instead of a single underscore
 

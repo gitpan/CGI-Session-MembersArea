@@ -56,7 +56,7 @@ sub populate_user_table
 {
 	my($dbh)				= @_;
 	my($sth)				= $dbh -> prepare('insert into user (user_full_name, user_full_name_key, user_password, user_resource_name, user_resource_username, user_resource_password) values (?, ?, ?, ?, ?, ?)');
-	my($input_file_name)	= '/apache2/perl/myadmin-init.txt';
+	my($input_file_name)	= 'myadmin-init.txt';
 
 	open(INX, $input_file_name) || throw Error::Simple("Can't open $input_file_name): $!");
 	my(@line) = <INX>;
@@ -95,7 +95,7 @@ sub populate_user_table
 my($db)		= 'myadmin';
 my($dbh)	= DBI -> connect
 (
-	"dbi:mysql:$db", 'root', 'toor',
+	"dbi:mysql:$db", 'root', 'pass',
 	{
 		AutoCommit			=> 1,
 		PrintError			=> 0,

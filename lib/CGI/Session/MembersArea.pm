@@ -33,7 +33,6 @@ use warnings;
 no warnings 'redefine';
 
 use Carp;
-use CGI::Session;
 use DBI;
 
 require 5.005_62;
@@ -58,7 +57,7 @@ our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
 our @EXPORT = qw(
 
 );
-our $VERSION = '1.11';
+our $VERSION = '2.00';
 
 # -----------------------------------------------
 
@@ -81,14 +80,10 @@ our $VERSION = '1.11';
 		_resource_name_column		=> 'user_resource_name',
 		_resource_password_column	=> 'user_resource_password',
 		_resource_username_column	=> 'user_resource_username',
-		_session_attributes			=> '',
-		_session_driver				=> 'MySQL',
 		_session_full_name_column	=> 'user_full_name',
 		_session_key_name_column	=> 'user_full_name_key',
-		_session_id_name			=> 'sid',
 		_session_password_column	=> 'user_password',
 		_session_table				=> 'user',
-		_session_timeout			=> '+10h',
 		_username					=> '',
 	);
 
@@ -133,58 +128,26 @@ sub DESTROY
 }	# End of DESTROY.
 
 # -----------------------------------------------
-
-sub id
-{
-	my($self) = @_;
-
-	$$self{'_session'} -> id();
-
-}	# End of id.
-
-# -----------------------------------------------
 # Return values:
-# o 'Logged in'
-# o 'Not logged in'
-# o /\d+/ (# of log in trials)
+# o $profile
+# o undef
 
 sub init
 {
 	my($self) = @_;
 
-	return 'Logged in' if ($$self{'_session'} -> param('logged_in') );
-
 	my($my_resource) = $self -> clean_user_data( ($$self{'_query'} -> param($$self{'_form_resource'}) || ''), $$self{'_form_field_width'});
 	my($my_username) = $self -> clean_user_data( ($$self{'_query'} -> param($$self{'_form_username'}) || ''), $$self{'_form_field_width'});
 	my($my_password) = $self -> clean_user_data( ($$self{'_query'} -> param($$self{'_form_password'}) || ''), $$self{'_form_field_width'});
 
-	my($result);
+	my($profile);
 
 	if ($my_username && $my_password)
 	{
-		my($profile) = $self -> load_profile($my_resource, $my_username, $my_password);
-
-		if ($profile)
-		{
-			$$self{'_session'} -> param(logged_in => 1);
-			$$self{'_session'} -> param(profile => $profile);
-			$$self{'_session'} -> clear(['login_trials']);
-
-			$result = 'Logged in';
-		}
-		else
-		{
-			my($trials) = $$self{'_session'} -> param('login_trials') || 0;
-
-			$result = $$self{'_session'} -> param(login_trials => ++$trials);
-		}
-	}
-	else
-	{
-		$result = 'Not logged in';
+		$profile = $self -> load_profile($my_resource, $my_username, $my_password);
 	}
 
-	$result;
+	$profile;
 
 }	# End of init.
 
@@ -248,7 +211,7 @@ sub new
 		}
 	}
 
-	Carp::croak(__PACKAGE__ . ". You must specify values for the parameters 'dsn', 'username', 'session_driver' and 'query'") if (! ($$self{'_dsn'} && $$self{'_username'} && $$self{'_session_driver'} && $$self{'_query'}) );
+	Carp::croak(__PACKAGE__ . ". You must specify values for the parameters 'dsn', 'username' and 'query'") if (! ($$self{'_dsn'} && $$self{'_username'} && $$self{'_query'}) );
 
 	$$self{'_dbh'} = DBI -> connect
 	(
@@ -263,28 +226,9 @@ sub new
 
 	Carp::croak(__PACKAGE__ . " Cannot log on to database using DSN '$$self{'_dsn'}'") if (! $$self{'_dbh'});
 
-	CGI::Session -> name($$self{'_session_id_name'}) if ($$self{'_session_id_name'});
-
-	$$self{'_session_attributes'}	||= {Handle => $$self{'_dbh'} };
-	$$self{'_session'}				= CGI::Session -> new("driver:$$self{'_session_driver'}", $$self{'_query'}, $$self{'_session_attributes'});
-
-	$$self{'_session'} -> expire($$self{'_session_timeout'}) if ($$self{'_session_timeout'});
-
 	return $self;
 
 }	# End of new.
-
-# -----------------------------------------------
-
-sub param
-{
-	my($self, $param, $value) = @_;
-
-	$$self{'_session'} -> param($param => $value) if (defined $value);
-
-	$$self{'_session'} -> param($param);
-
-}	# End of param.
 
 # -----------------------------------------------
 
@@ -307,55 +251,43 @@ synopsis assumes that that is in fact what you are trying to do.
 
 	our @ISA = qw/CGI::Application/;
 
-	sub check_log_in
-	{
-		my($self) = @_;
-
-		$self -> param('logged_in') eq 'Logged in'
-			? $self -> param('session') -> param('profile')
-			: 0;
-
-	}	# End of check_log_in.
-
 	sub setup
 	{
-		my($self) = @_;
-
-		...
-
-		$self -> param(database => '');
-		$self -> mode_param(\&setup_mode);
+	  my($self) = @_;
+	  ...
+	  $self -> param(database => '');
+	  $self -> param(guardian => '');
+	  $self -> param(profile => '');
+	  $self -> mode_param(\&setup_mode);
 
 	}	# End of setup.
 
 	sub setup_mode
 	{
-		...
+	  ...
+	  $self -> param(guardian => CGI::Session::MembersArea -> new
+	  (
+	    username  => 'root',
+	    password  => 'pass',
+	    query     => $self -> query(),
+	  ) );
 
-		$self -> param(session => CGI::Session::MembersArea -> new
-		(
-			username       => 'root',
-			password       => 'pass',
-			query          => $self -> query(),
-			session_driver => 'MySQL',
-		) );
+	  $self -> param(profile => $self -> param('guardian') -> init() );
 
-		$self -> param(logged_in => $self -> param('session') -> init() );
+	  if ($self -> param('profile') )
+	  {
+	    $self -> param
+	    (
+	      database => DBIx::Admin::DatabaseModel -> new
+	      (
+	        dsn      => $self -> param('my_dsn'),
+	        username => $$profile{'username'},
+	        password => $$profile{'password'},
+	      )
+	    );
 
-		my($profile) = $self -> check_log_in();
-
-		if ($profile)
-		{
-			$self -> param
-			(
-				database => DBIx::Admin::DatabaseModel -> new
-				(
-					dsn      => $self -> param('my_dsn'),
-					username => $$profile{'username'},
-					password => $$profile{'password'},
-				)
-			);
-		}
+	    $self -> param('database') -> param(profile => $self -> param('profile') );
+	  }
 
 	}	# End of sub setup_mode.
 
@@ -363,14 +295,42 @@ synopsis assumes that that is in fact what you are trying to do.
 
 C<CGI::Session::MembersArea> is a pure Perl module.
 
-It is a wrapper around CGI::Session. Specifically, it implements an idea in the CGI::Session CookBook, from the
-section called Member's Area.
+It implements an idea from the CGI::Session CookBook, in the section called Member's Area.
 
 It uses a database as a guardian to control access to resources. These resources are
 usually other databases, but don't have to be.
 
+When a user supplies their name and password via a CGI form, this module uses 3 items:
+
+=over 4
+
+=item Resource name
+
+=item User name
+
+=item Password
+
+=back
+
+to determine whether or not that user is allowed access to the resource.
+
+If you don't want the user to have to input a resource name, just change the CGI object
+like this, to force the resource to always have the same name:
+
+	$q -> param(my_resource => 'Some value');
+
+This module uses these 3 items when it searches a database table, called 'user' by
+default.
+
+If that user is found in the database, the user's profile is returned by C<sub init()>.
+The profile is defined below.
+
+It is assumed the program using this module will also use CGI::Session, in which case
+the program can save the profile to some database via the CGI::Session object, as in the
+synopsis.
+
 See the section of this document called Resources (as it happens), which contains the URI
-of a database administration package (myadmin-2.00.cgi) which uses this module.
+of a database administration package (myadmin.cgi) which uses this module.
 
 The guardian database contains a single table called, by default, 'user'. This table is
 assumed to be in a database called, by default, 'myadmin'. Of course, the table could even
@@ -455,9 +415,9 @@ and even then you should be sending only a digest (eg: MD5) of that password.
 
 Lastly, from the definition of the 'user' table it should be clear that the username and the
 password of the resource itself are stored in the guardian database 'myadmin', and are used
-by the code (see the synopsis - look for the hash ref $profile) to connect to the protected
-resource. Hence the resource's username and password are also never transmitted across the
-network.
+by the code (see the synopsis - look for DBIx::Admin::DatabaseModel -> new(...) ) to connect
+to the protected resource. Hence the resource's username and password are also never
+transmitted across the network.
 
 See the /examples directory for a program and data file which can be used to populate a
 demonstration 'user' table.
@@ -548,10 +508,6 @@ This is the object managing the CGI form fields.
 Typically it is a CGI object, but can be any compatible object, ie one with a C<param()>
 method.
 
-Further, this value is passed as the second parameter to the constructor of CGI::Session.
-
-Eg: CGI::session(..., $$self{'_query'}, ...).
-
 The default value is ''.
 
 This parameter is mandatory.
@@ -583,62 +539,12 @@ The default value is 'user_resource_username'.
 
 This parameter is optional.
 
-=item session_attributes
-
-This is a hash ref of attributes passed as the third parameter to the constructor of
-CGI::Session.
-
-Eg: CGI::session(..., ..., $$self{'_session_attributes'}).
-
-The default value is ''.
-
-However, this default is overridden, if empty, by {Handle => $$self{'_dbh'} }, after this
-module connects to the guardian database, by default 'myadmin'.
-
-This means the guardian database containing the 'user' table will also be used to hold
-CGI::Session sessions. In this case this database must then contain a table called
-'sessions', as defined by the module CGI::Session.
-
-But. if you call new with something like
-
-	new(session_attributes => {Directory => '/tmp'})
-
-then your value will take precedence.
-
-See the documentation for CGI::Session for more detail.
-
-This parameter is optional.
-
-=item session_driver
-
-This is a value passed as part of the first parameter to the constructor of CGI::Session.
-
-Eg: CGI::session("driver:$$self{'_session_driver'}", ..., ...).
-
-The default value is 'MySQL'.
-
-See the documentation for CGI::Session for more detail.
-
-This parameter is mandatory.
-
 =item session_full_name_column
 
 This is the name of the column in the 'user' table which contains the name of the user who might
 be permitted access to the resource
 
 The default value is 'user_full_name'.
-
-This parameter is optional.
-
-=item session_id_name
-
-This is a value passed to the underlying CGI::Session's method C<name()>.
-
-Set the value to the empty string to stop this module calling C<name()>.
-
-The default value is 'sid'.
-
-See the documentation for CGI::Session for more detail.
 
 This parameter is optional.
 
@@ -672,18 +578,6 @@ This is the name of table in the guardian database which holds details of users 
 be permitted access to resources.
 
 The default value is 'user'.
-
-This parameter is optional.
-
-=item session_timeout
-
-This is a value passed to the underlying CGI::Session's method C<expire()>.
-
-Set the value to the empty string to stop this module calling C<expire()>.
-
-The default value is '+10h'.
-
-See the documentation for CGI::Session for more detail.
 
 This parameter is optional.
 
@@ -731,10 +625,6 @@ A Boolean flag, set to 1 to indicate that $data must contain only digits.
 
 =back
 
-=head1 Method: id()
-
-Returns the session id of the underlying CGI::Session object.
-
 =head1 Method: init()
 
 You call this after calling new(), and it uses the query object to obtain CGI form fields,
@@ -744,13 +634,10 @@ Return values:
 
 =over 4
 
-=item 'Logged in'
+=item $profile, a hash ref
 
-This indicates the user is already connected to the guardian database 'myadmin'.
-
-If the user is not connected, and their CGI form data is valid, their 'profile' is loaded,
-if possible, from the guardian database 'myadmin', and is stored in the underlying
-CGI::Session object under the param name 'profile'.
+If the user's CGI form data is valid, their 'profile' is loaded from the guardian
+database 'myadmin'.
 
 And what is this profile? It is defined by the code in method C<load_profile()>.
 
@@ -780,7 +667,8 @@ This comes from the column of the user table called 'user_full_name'.
 
 Use the C<new()> parameter 'session_full_name_column' if you change the name of this column.
 
-The value associated with this key in the profile can be used to display the name of the person who is logged in.
+The value associated with this key in the profile can be used to display the name of the
+person who is logged in.
 
 =item resource
 
@@ -808,19 +696,15 @@ Use the C<new()> parameter 'resource_password_column' if you change the name of 
 
 =back
 
-=item If less the 3 items match, do not connect the user to the guardian database
+=item If less the 3 items match, the user will not be found in the guardian database
 
 =back
 
-=item 'Not logged in'
+=item undef
 
-This indicates the user could not be logged in.
+This indicates the user could not be found in the guardian database.
 
 The most likely reason for this is that the CGI form fields have the wrong names or values.
-
-=item /\d+/ (# of log in trials)
-
-This can be used to take some action if the user tries to connect too many times.
 
 =back
 
@@ -830,15 +714,7 @@ The method returns a hash ref which contains a user's profile, or it returns und
 
 You do not normally call this method.
 
-Method C<init()> calls C<load_profile()> if the user is not already logged on, and if
-the CGI form fields contain valid values.
-
-=head1 Method: param($param[, $value])
-
-This method returns the current value of the underlying CGI::Session's parameter called
-$param.
-
-If $value is present, the parameter is set to this value before being returned.
+Method C<init()> calls C<load_profile()>.
 
 =head1 Example code
 
@@ -866,13 +742,15 @@ Edit it to suit your circumstances.
 
 =over 4
 
+=item CGI::Session
+
 =item DBIx::Admin::Application
 
-This is part of myadmin.cgi V 2.00.
+This is part of myadmin.cgi V 2.01.
 
 =item DBIx::Admin::DatabaseModel
 
-This is part of myadmin.cgi V 2.00.
+This is part of myadmin.cgi V 2.01.
 
 =item Javascript::MD5
 
@@ -884,20 +762,20 @@ This is part of myadmin.cgi V 2.00.
 
 =item Carp
 
-=item CGI::Session
+=item DBI
 
 =back
 
 =head1 Resources
 
-myadmin.cgi V 2.00: A pure Perl, vendor-independent, database administration tool.
+myadmin.cgi V 2.01: A pure Perl, vendor-independent, database administration tool.
 
 This program contains a demonstration of how to use C<CGI::Session::MembersArea>.
 
-myadmin.cgi V 2.00 is the first public version of a replacement for myadmin.cgi V 1.16
-(04-Feb-2002).
+myadmin.cgi V 2.01 is the first public version of a replacement for myadmin.cgi V 1.16
+(which was released on 04-Feb-2002).
 
-New version - V 2.00: http://savage.net.au/Perl-tutorials.html#tut_41
+New version - V 2.01: http://savage.net.au/Perl-tutorials.html#tut_41
 
 Stable version - V 1.16 (MySQL only, no sessions): http://savage.net.au/Perl-tutorials.html#tut_35
 
