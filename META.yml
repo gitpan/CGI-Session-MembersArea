@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name: CGI-Session-MembersArea
-version: 2.01
+version: 2.02
 author:
   - Ron Savage <ron@savage.net.au>
 abstract: A resource guardian based on CGI::Session
@@ -11,5 +11,8 @@ requires:
 build_requires:
   Test::More: 0
   Test::Pod: 0
-provides: {}
-generated_by: Module::Build version 0.24
+provides:
+  CGI::Session::MembersArea:
+    file: lib/CGI/Session/MembersArea.pm
+    version: 2.02
+generated_by: Module::Build version 0.2611

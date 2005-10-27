@@ -57,7 +57,7 @@ our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
 our @EXPORT = qw(
 
 );
-our $VERSION = '2.01';
+our $VERSION = '2.02';
 
 # -----------------------------------------------
 
@@ -188,9 +188,7 @@ sub load_profile
 
 sub new
 {
-	my($caller, %arg)	= @_;
-	my($caller_is_obj)	= ref($caller);
-	my($class)			= $caller_is_obj || $caller;
+	my($class, %arg)	= @_;
 	my($self)			= bless({}, $class);
 
 	for my $attr_name ($self -> _standard_keys() )
@@ -200,10 +198,6 @@ sub new
 		if (exists($arg{$arg_name}) )
 		{
 			$$self{$attr_name} = $arg{$arg_name};
-		}
-		elsif ($caller_is_obj)
-		{
-			$$self{$attr_name} = $$caller{$attr_name};
 		}
 		else
 		{
