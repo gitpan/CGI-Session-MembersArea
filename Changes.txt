@@ -1,5 +1,8 @@
 Revision history for Perl extension CGI::Session::MembersArea.
 
+2.03  Tue Mar 25 14:21:00 2008
+    - Add DBI to Build.PL and Makefile.PL
+
 2.02  Thu Oct 27 19:40:00 2005
 	- Simplify code in new() to no longer check if caller is an object
 		as per the new standard on such matters

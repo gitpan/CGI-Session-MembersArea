@@ -1,18 +1,24 @@
---- #YAML:1.0
+---
 name: CGI-Session-MembersArea
-version: 2.02
+version: 2.03
 author:
-  - Ron Savage <ron@savage.net.au>
+  - 'Ron Savage <ron@savage.net.au>'
 abstract: A resource guardian based on CGI::Session
 license: artistic
+resources:
+  license: http://opensource.org/licenses/artistic-license.php
 requires:
   CGI::Session: 0
   Carp: 0
+  DBI: 0
 build_requires:
   Test::More: 0
   Test::Pod: 0
 provides:
   CGI::Session::MembersArea:
     file: lib/CGI/Session/MembersArea.pm
-    version: 2.02
-generated_by: Module::Build version 0.2611
+    version: 2.03
+generated_by: Module::Build version 0.2808
+meta-spec:
+  url: http://module-build.sourceforge.net/META-spec-v1.2.html
+  version: 1.2
