@@ -1,24 +1,26 @@
 ---
-name: CGI-Session-MembersArea
-version: 2.03
+abstract: 'A resource guardian based on CGI::Session'
 author:
   - 'Ron Savage <ron@savage.net.au>'
-abstract: A resource guardian based on CGI::Session
+build_requires:
+  Test::More: 0
+  Test::Pod: 0
+configure_requires:
+  Module::Build: 0.36
+generated_by: 'Module::Build version 0.3607'
 license: artistic
-resources:
-  license: http://opensource.org/licenses/artistic-license.php
+meta-spec:
+  url: http://module-build.sourceforge.net/META-spec-v1.4.html
+  version: 1.4
+name: CGI-Session-MembersArea
+provides:
+  CGI::Session::MembersArea:
+    file: lib/CGI/Session/MembersArea.pm
+    version: 2.06
 requires:
   CGI::Session: 0
   Carp: 0
   DBI: 0
-build_requires:
-  Test::More: 0
-  Test::Pod: 0
-provides:
-  CGI::Session::MembersArea:
-    file: lib/CGI/Session/MembersArea.pm
-    version: 2.03
-generated_by: Module::Build version 0.2808
-meta-spec:
-  url: http://module-build.sourceforge.net/META-spec-v1.2.html
-  version: 1.2
+resources:
+  license: http://www.perlfoundation.org/artistic_license_1_0
+version: 2.06

@@ -57,7 +57,7 @@ our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
 our @EXPORT = qw(
 
 );
-our $VERSION = '2.03';
+our $VERSION = '2.06';
 
 # -----------------------------------------------
 
@@ -750,16 +750,6 @@ This is part of myadmin.cgi V 2.01.
 
 =back
 
-=head1 Required Modules
-
-=over 4
-
-=item Carp
-
-=item DBI
-
-=back
-
 =head1 Resources
 
 myadmin.cgi V 2.01: A pure Perl, vendor-independent, database administration tool.
@@ -781,8 +771,7 @@ Home page: http://savage.net.au/index.html
 
 =head1 Copyright
 
-Australian copyright (c) 2004, Ron Savage. All rights reserved.
-
+Australian copyright (c) 2004, Ron Savage.
 	All Programs of mine are 'OSI Certified Open Source Software';
 	you can redistribute them and/or modify them under the terms of
 	The Artistic License, a copy of which is available at:
